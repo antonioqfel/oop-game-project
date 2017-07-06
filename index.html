@@ -4,9 +4,25 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Exploding Kittens</title>
+    <style type="text/css">
+        .hidden {
+            display: none;
+        }
+    </style>
 </head>
 <body>
     <div id="app"></div>
+    <div class="hidden">
+        <audio controls id="song">
+          <source src="mp3/perturbator.mp3" type="audio/mpeg">
+        </audio>
+    </div>
+    <div class="hidden">
+        <audio controls id="explosion">
+          <source src="wav/explosion.wav" type="audio/mpeg">
+        </audio>
+    </div>
+    
     <script src="js/kittens.js"></script>
 </body>
 </html>

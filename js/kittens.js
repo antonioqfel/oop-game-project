@@ -12,6 +12,7 @@ var PLAYER_HEIGHT = 54;
 // These two constants keep us from using "magic numbers" in our code
 var LEFT_ARROW_CODE = 37;
 var RIGHT_ARROW_CODE = 39;
+var SPACE_BAR_CODE = 32;
 
 // These two constants allow us to DRY
 var MOVE_LEFT = 'left';
@@ -19,19 +20,41 @@ var MOVE_RIGHT = 'right';
 
 // Preload game images
 var images = {};
-['enemy.png', 'stars.png', 'player.png'].forEach(imgName => {
+['enemy.png', 'stars.png', 'player.png', 'explosion.png'].forEach(imgName => {
     var img = document.createElement('img');
     img.src = 'images/' + imgName;
     images[imgName] = img;
 });
 
+class Entity {
+    render(ctx) {
+        ctx.drawImage(this.sprite, this.x, this.y);
+    }
+}
 
+// Preloading the song and sounds effects
+var song = document.getElementById('song')
+var sndExplosion = document.getElementById('explosion');
 
+/*
+var body = document.querySelector('body');
+body.addEventListener('keydown', function (e) {
+    if(e.which === 32) {
+       // var anotherGame = new Engine(document.getElementById('app'));
+        //anotherGame.start();
+        this.player.sprite = images['player.png'];
+        gameEngine.gameLoop();
+        
+    }
+})
+*/
 
+//creatin an eventlistner to the body
 
 // This section is where you will be doing most of your coding
-class Enemy {
+class Enemy extends Entity {
     constructor(xPos) {
+        super();
         this.x = xPos;
         this.y = -ENEMY_HEIGHT;
         this.sprite = images['enemy.png'];
@@ -44,13 +67,14 @@ class Enemy {
         this.y = this.y + timeDiff * this.speed;
     }
 
-    render(ctx) {
-        ctx.drawImage(this.sprite, this.x, this.y);
-    }
+    // render(ctx) {
+    //     ctx.drawImage(this.sprite, this.x, this.y);
+    // }
 }
 
-class Player {
+class Player extends Entity {
     constructor() {
+        super();
         this.x = 2 * PLAYER_WIDTH;
         this.y = GAME_HEIGHT - PLAYER_HEIGHT - 10;
         this.sprite = images['player.png'];
@@ -66,14 +90,10 @@ class Player {
         }
     }
 
-    render(ctx) {
-        ctx.drawImage(this.sprite, this.x, this.y);
-    }
+    // render(ctx) {
+    //     ctx.drawImage(this.sprite, this.x, this.y);
+    // }
 }
-
-
-
-
 
 /*
 This section is a tiny game engine.
@@ -120,7 +140,7 @@ class Engine {
 
         var enemySpot;
         // Keep looping until we find a free enemy spot at random
-        while (!enemySpot || this.enemies[enemySpot]) {
+        while (enemySpot === undefined || this.enemies[enemySpot]) {
             enemySpot = Math.floor(Math.random() * enemySpots);
         }
 
@@ -129,6 +149,7 @@ class Engine {
 
     // This method kicks off the game
     start() {
+        song.play();
         this.score = 0;
         this.lastFrame = Date.now();
 
@@ -139,6 +160,12 @@ class Engine {
             }
             else if (e.keyCode === RIGHT_ARROW_CODE) {
                 this.player.move(MOVE_RIGHT);
+            }
+            else if (e.keyCode === SPACE_BAR_CODE) {
+                this.player.sprite = images['player.png'];
+                song.play();
+                this.score = 0;
+                gameEngine.gameLoop();
             }
         });
 
@@ -160,16 +187,14 @@ class Engine {
         var currentFrame = Date.now();
         var timeDiff = currentFrame - this.lastFrame;
 
+        var playerDead = false;
         // Increase the score!
         this.score += timeDiff;
 
         // Call update on all enemies
         this.enemies.forEach(enemy => enemy.update(timeDiff));
 
-        // Draw everything!
-        this.ctx.drawImage(images['stars.png'], 0, 0); // draw the star bg
-        this.enemies.forEach(enemy => enemy.render(this.ctx)); // draw the enemies
-        this.player.render(this.ctx); // draw the player
+        
 
         // Check if any enemies should die
         this.enemies.forEach((enemy, enemyIdx) => {
@@ -179,12 +204,12 @@ class Engine {
         });
         this.setupEnemies();
 
+
+        this.ctx.drawImage(images['stars.png'], 0, 0); // draw the star bg
         // Check if player is dead
         if (this.isPlayerDead()) {
             // If they are dead, then it's game over!
-            this.ctx.font = 'bold 30px Impact';
-            this.ctx.fillStyle = '#ffffff';
-            this.ctx.fillText(this.score + ' GAME OVER', 5, 30);
+            playerDead = true;
         }
         else {
             // If player is not dead, then draw the score
@@ -196,18 +221,47 @@ class Engine {
             this.lastFrame = Date.now();
             requestAnimationFrame(this.gameLoop);
         }
+        
+        // Draw everything!
+
+        this.enemies.forEach(enemy => enemy.render(this.ctx)); // draw the enemies
+        this.player.render(this.ctx); // draw the player
+        if(playerDead) {
+            this.ctx.font = 'bold 40px Impact';
+            this.ctx.fillStyle = '#FF0000';
+            this.ctx.fillText(this.score, 150, 100);
+            this.ctx.fillText('GAME OVER', 100, 150);
+        }
     }
 
     isPlayerDead() {
         // TODO: fix this function!
-        return false;
+        var collision = false;
+        
+        this.enemies.forEach((enemy, idx) =>{
+            
+            if (enemy.x === this.player.x) {
+                //console.log('yes');
+                if ((enemy.y + ENEMY_HEIGHT) >= this.player.y) {
+                    //console.log('yes2');
+                    collision = true;
+                    // play the sound of the explosion and change the image
+                    sndExplosion.play();
+                    this.player.sprite = images['explosion.png'];
+                    song.pause();
+                    song.currentTime = 0;
+                }
+            }
+        });
+        return collision;
     }
 }
-
-
-
-
 
 // This section will start the game
 var gameEngine = new Engine(document.getElementById('app'));
 gameEngine.start();
+
+// function explosionAnimation() {
+//     snd.play();
+//     this.player.sprite = images['explosion.png'];   
+// }
